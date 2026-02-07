@@ -18,34 +18,51 @@ st.set_page_config(
 
 st.markdown(r"""
 <style>
+    /* Global Background */
     .stApp { background-color: #000000 !important; }
+    
+    /* Headers & Text - Research Cyan */
     h1, h2, h3, h4 { color: #00ADB5 !important; font-family: 'Consolas', monospace; }
     p, li, label, .stMarkdown, .stCaption { color: #FFFFFF !important; font-size: 14px; }
     
-    /* NUCLEAR STEALTH OVERRIDE */
-    div[data-baseweb="select"] > div, div[data-baseweb="input"] > div, input, select {
-        background-color: #161B22 !important; color: #00FFF5 !important; border: 1px solid #00ADB5 !important;
+    /* TOTAL STEALTH DROPDOWNS & INPUTS */
+    div[data-baseweb="select"] > div, div[data-baseweb="input"] > div, input, select, .stSelectbox, .stNumberInput {
+        background-color: #161B22 !important; 
+        color: #00FFF5 !important; 
+        border: 1px solid #00ADB5 !important;
     }
     div[data-baseweb="popover"], ul[role="listbox"], li[role="option"] {
-        background-color: #161B22 !important; color: #00FFF5 !important;
+        background-color: #161B22 !important;
+        color: #00FFF5 !important;
+        border: 1px solid #00ADB5 !important;
     }
-
-    /* COMPACT BUTTONS */
-    div.stButton > button, div.stDownloadButton > button { 
-        border: 1px solid #00ADB5 !important; color: #00ADB5 !important; background-color: #161B22 !important; 
-        width: 100%; border-radius: 2px; font-weight: bold; font-size: 11px !important;
-        text-transform: uppercase; padding: 4px 8px !important; height: 32px !important;
+    li[role="option"]:hover, li[aria-selected="true"] {
+        background-color: #1f242d !important;
+        color: #00FFF5 !important;
     }
-    div.stButton > button:hover { background-color: #1f242d !important; box-shadow: 0 0 10px rgba(0, 173, 181, 0.4); }
 
     /* METRICS & SIDEBAR */
-    div[data-testid="stMetricValue"] { color: #00FF41 !important; font-family: 'Consolas', monospace; }
+    div[data-testid="stMetricValue"] { color: #00FF41 !important; font-family: 'Consolas', monospace; text-shadow: 0 0 10px rgba(0,255,65,0.4); }
+    div[data-testid="stMetricLabel"] { color: #AAAAAA !important; text-transform: uppercase; letter-spacing: 1px; }
     section[data-testid="stSidebar"] { background-color: #050505 !important; border-right: 1px solid #222; }
-    .stTabs [data-baseweb="tab-list"] { background-color: #000000 !important; }
+    
+    /* STEALTH EXPORT BUTTON (RIGHT SIDE) */
+    div.stDownloadButton > button { 
+        border: 1px solid #00ADB5 !important; 
+        color: #00ADB5 !important; 
+        background-color: #161B22 !important; 
+        width: 100%; border-radius: 2px; font-weight: bold; font-size: 12px !important;
+        text-transform: uppercase; padding: 6px 12px !important;
+    }
+    div.stDownloadButton > button:hover { 
+        background-color: #1f242d !important; 
+        color: #00FFF5 !important; 
+        box-shadow: 0 0 15px rgba(0, 173, 181, 0.4); 
+    }
 </style>
 """, unsafe_allow_html=True)
 
-# --- 2. PHYSICS CORE: 12-METRIC KERNEL ---
+# --- 2. PHYSICS CORE ---
 class SpacetimeSolver:
     @staticmethod
     @st.cache_resource(show_spinner=False)
@@ -64,7 +81,7 @@ class SpacetimeSolver:
             elif "Kerr-Newman" in metric_type: return db_dr - (2 * r / (r**2 + param[1]**2)) * b + (param[0]**2 / r**2)
             elif "Naked" in metric_type: return db_dr - (b / (r * param))
             elif "Ellis" in metric_type: return db_dr - (b / (r**2 + param**2))
-            return db_dr - (b / r) # ER Bridge
+            return db_dr - (b / r)
 
         bc_val = r0 if "Warp" not in metric_type else 1.0
         bc = dde.icbc.DirichletBC(geom, lambda x: bc_val, lambda x, on: on and np.isclose(x[0], r0))
@@ -91,17 +108,18 @@ class SpacetimeSolver:
 st.title("LORENTZIAN METRIC SOLVER")
 
 st.sidebar.markdown(r"### 🛠️ MANIFOLD SELECTOR")
-metric_type = st.sidebar.selectbox("Spacetime Metric", [
+metric_list = [
     "Morris-Thorne Wormhole", "Kerr Black Hole", "Alcubierre Warp Drive", 
     "Reissner-Nordström (Charged)", "Schwarzschild-de Sitter (Expansion)", 
     "Schwarzschild-AdS (Contraction)", "GHS Stringy Black Hole", 
     "Vaidya (Radiating Star)", "Kerr-Newman (Charge + Rotation)", 
     "Einstein-Rosen Bridge", "JNW (Naked Singularity)", "Ellis Drainhole"
-])
+]
+metric_type = st.sidebar.selectbox("Spacetime Metric", metric_list)
 
 r0 = st.sidebar.number_input(r"Horizon/Throat ($r_0$)", 0.1, 500.0, 5.0, format="%.4f")
 
-# Dynamic Physics Parameters
+# Dynamic Parameter Logic
 if "Kerr-Newman" in metric_type:
     param = [st.sidebar.slider("Charge (Q)", 0.0, 5.0, 1.0), st.sidebar.slider("Rotation (a)", 0.0, 5.0, 1.0)]
 elif "Sitter" in metric_type or "AdS" in metric_type:
@@ -110,17 +128,17 @@ elif "Charged" in metric_type: param = st.sidebar.slider("Charge (Q)", 0.0, floa
 elif "Kerr" in metric_type: param = st.sidebar.slider("Rotation (a)", 0.0, 5.0, 1.0)
 elif "Warp" in metric_type: param = st.sidebar.slider("Velocity (v/c)", 0.1, 5.0, 1.0)
 elif "Stringy" in metric_type: param = st.sidebar.slider("Coupling (φ)", 0.0, 4.0, 0.5)
-else: param = st.sidebar.slider("Curvature/Mass Rate", 0.01, 1.0, 0.5)
+else: param = st.sidebar.slider("Curvature Factor", 0.01, 1.0, 0.5)
 
 lr_val = st.sidebar.number_input("Learning Rate", 0.0001, 0.01, 0.001, format="%.4f")
 epochs = st.sidebar.select_slider("Epochs", options=[1000, 2500, 5000], value=2500)
 pause = st.sidebar.toggle("HALT SIMULATION", value=False)
 
-# EXECUTION
+# Solver Execution
 model, hist = SpacetimeSolver.solve_manifold(metric_type, r0, r0 * 10, param, epochs, lr_val)
 r, b, rho, z = SpacetimeSolver.extract_telemetry(model, metric_type, r0, r0 * 10)
 
-# METRICS
+# Metrics
 m1, m2, m3 = st.columns(3)
 m1.metric("CONVERGENCE", f"{hist.loss_train[-1][0]:.2e}")
 m2.metric("CLASS", metric_type.split()[0])
@@ -128,40 +146,33 @@ m3.metric("PEAK DENSITY", f"{np.max(np.abs(rho)):.4f}")
 
 st.markdown("---")
 
-# QUAD-QUADRANT LAYOUT
+# MAIN HUD LAYOUT
 v_col, d_col = st.columns([2, 1])
 
 with v_col:
-    # 3D DUAL-SURFACE (Graph 1 & 2 Integrated)
+    # 3D DUAL-SURFACE (Mirror Universe Connection)
     th = np.linspace(0, 2*np.pi, 60)
     R, T = np.meshgrid(r.flatten(), th)
     Z = np.tile(z.flatten(), (60, 1))
     
     fig = go.Figure(data=[
-        go.Surface(x=R*np.cos(T), y=R*np.sin(T), z=Z, colorscale='Viridis', showscale=False, opacity=0.9),
-        go.Surface(x=R*np.cos(T), y=R*np.sin(T), z=-Z, colorscale='Cividis', showscale=False, opacity=0.9)
+        go.Surface(x=R*np.cos(T), y=R*np.sin(T), z=Z, colorscale='Viridis', showscale=False),
+        go.Surface(x=R*np.cos(T), y=R*np.sin(T), z=-Z, colorscale='Cividis', showscale=False)
     ])
-    fig.update_layout(template="plotly_dark", scene=dict(xaxis_visible=False, yaxis_visible=False, zaxis_visible=False), paper_bgcolor='black', margin=dict(l=0,r=0,b=0,t=0))
+    fig.update_layout(template="plotly_dark", scene=dict(xaxis_visible=False, yaxis_visible=False, zaxis_visible=False, aspectmode='cube'), paper_bgcolor='black', margin=dict(l=0,r=0,b=0,t=0))
     st.plotly_chart(fig, use_container_width=True)
-    
-    # COMPACT BUTTON CIRCUIT
-    b1, b2, b3 = st.columns(3)
-    b1.download_button("📸 SNAPSHOT", data=io.BytesIO().getvalue(), file_name="topology.png")
-    b2.download_button("📊 DATA (CSV)", data=pd.DataFrame({"r":r.flatten(),"b":b.flatten()}).to_csv().encode('utf-8'), file_name="telemetry.csv")
-    b3.button("🔄 RESET KERNEL")
 
 with d_col:
-    # STACKED ANALYTICS (Graphs 3 & 4)
-    # 
+    # STACKED 2D ANALYTICS
     fig_stack, (ax1, ax2) = plt.subplots(2, 1, facecolor='black', figsize=(6, 8))
     
-    # 2D Graph 1: Density
+    # 2D Density Chart
     ax1.set_facecolor('black')
     ax1.plot(r, rho, color='#FF2E63', lw=2)
     ax1.set_title("Energy Density Profile", color='white', fontsize=10)
     ax1.tick_params(colors='white', labelsize=8); ax1.grid(alpha=0.1)
     
-    # 2D Graph 2: Shape
+    # 2D Shape Chart
     ax2.set_facecolor('black')
     ax2.plot(r, b, color='#00ADB5', lw=2)
     ax2.set_title("Manifold Shape Function b(r)", color='white', fontsize=10)
@@ -169,9 +180,17 @@ with d_col:
     
     plt.tight_layout()
     st.pyplot(fig_stack)
-
-    # Reference Tabs
-    st.tabs(["🔬 PHYSICS NOTES", "🛰️ TELEMETRY"])
+    
+    # RELOCATED TELEMETRY BUTTON
+    st.markdown("### 📊 DATA EXPORT")
+    df_out = pd.DataFrame({"radius_r": r.flatten(), "shape_b": b.flatten(), "density_rho": rho.flatten()})
+    st.download_button(
+        label="📥 EXPORT MANIFOLD TELEMETRY (CSV)",
+        data=df_out.to_csv(index=False).encode('utf-8'),
+        file_name=f"{metric_type.replace(' ', '_')}_telemetry.csv",
+        mime="text/csv",
+        use_container_width=True
+    )
 
 if not pause:
     time.sleep(0.01)
