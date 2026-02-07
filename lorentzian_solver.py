@@ -19,7 +19,7 @@ st.markdown(r"""
     
     /* Headers & Text - Research HUD Cyan */
     h1, h2, h3, h4 { color: #00ADB5 !important; font-family: 'Consolas', monospace; }
-    p, li, label, .stMarkdown, .stCaption { color: #FFFFFF !important; }
+    p, li, label, .stMarkdown, .stCaption { color: #FFFFFF !important; font-size: 15px; }
     
     /* Stealth Input Boxes - Dark Slate with Cyan Glow */
     input { background-color: #161B22 !important; color: #00FFF5 !important; border: 1px solid #333 !important; }
@@ -72,7 +72,7 @@ class SpacetimeSolver:
         return model, loss
 
     @staticmethod
-    def extract_telemetry(model, r0, r_max, redshift_val):
+    def extract_telemetry(model, r0, r_max, redshift_val, p_energy):
         r_v = np.linspace(r0, r_max, 800).reshape(-1, 1)
         r_t = torch.tensor(r_v, dtype=torch.float32, requires_grad=True)
         b_t = model.net(r_t)
@@ -82,21 +82,27 @@ class SpacetimeSolver:
         rho = db_dr / (8 * np.pi * r_v**2 + 1e-12)
         tau = (b / (8 * np.pi * r_v**3)) - (2 * redshift_val * (1 - b/r_v) / (8 * np.pi * r_v))
         
+        # Relativistic Particle Dynamics (Blueshift/Energy Gain)
+        # Gamma factor approximation as particle falls into throat
+        particle_gamma = p_energy / (np.sqrt(np.abs(1 - b/r_v)) + 1e-6)
+        
         z = np.zeros_like(r_v)
         dr = r_v[1] - r_v[0]
         for i in range(1, len(r_v)):
             val = (r_v[i] / (b[i] + 1e-9)) - 1
             z[i] = z[i-1] + (1.0 / np.sqrt(val) if val > 1e-9 else 15.0) * dr
             
-        return r_v, b, rho, tau, z
+        return r_v, b, rho, tau, z, particle_gamma
 
 # --- 3. DASHBOARD INTERFACE ---
 st.sidebar.markdown(r"### 🧬 $G_{\mu\nu}$ TOPOLOGY")
-
-# Combined Number Input & Slider Logic for PhD Precision
-r_throat = st.sidebar.number_input(r"Throat Radius ($r_0$)", 0.0001, 1000.0, 2.0, format="%.6f")
+r_throat = st.sidebar.number_input(r"Throat Radius ($r_0$)", 0.0001, 500.0, 2.0, format="%.6f")
 flare = st.sidebar.slider(r"Curvature Intensity ($\kappa$)", 0.01, 0.99, 0.5)
 redshift = st.sidebar.slider(r"Redshift Offset ($\Phi$)", 0.0, 1.0, 0.0)
+
+st.sidebar.markdown(r"### ☄️ PARTICLE KINEMATICS")
+p_energy = st.sidebar.number_input(r"Infall Energy ($\epsilon$)", 0.000001, 100.0, 1.0, format="%.6f")
+flux_density = st.sidebar.slider("Flux Volume", 1, 100, 50)
 
 st.sidebar.markdown(r"### ⚙️ NUMERICAL KERNEL")
 lr_val = st.sidebar.number_input(r"Learning Rate ($\eta$)", 0.000001, 0.1, 0.001, format="%.6f")
@@ -106,9 +112,9 @@ pause = st.sidebar.toggle("HALT SIMULATION", value=False)
 
 # Solver Execution
 model, hist = SpacetimeSolver.solve_manifold(r_throat, r_throat * 12, flare, redshift, epochs, lr_val)
-r, b, rho, tau, z = SpacetimeSolver.extract_telemetry(model, r_throat, r_throat * 12, redshift)
+r, b, rho, tau, z, p_gamma = SpacetimeSolver.extract_telemetry(model, r_throat, r_throat * 12, redshift, p_energy)
 
-# Metrics - Raw strings used to avoid Unicode error
+# Metrics
 m1, m2, m3 = st.columns(3)
 m1.metric("CONVERGENCE", f"{hist.loss_train[-1][0]:.2e}")
 m2.metric("PEAK DENSITY", f"{np.max(rho):.4f}")
@@ -131,14 +137,14 @@ with v_col:
     fig.update_layout(template="plotly_dark", scene=dict(xaxis_visible=False, yaxis_visible=False, zaxis_visible=False, aspectmode='cube'), paper_bgcolor='black', margin=dict(l=0,r=0,b=0,t=0))
     st.plotly_chart(fig, use_container_width=True)
     
-    # Export Buttons Underneath
+    # Export Buttons
     c_btn1, c_btn2 = st.columns(2)
     c_btn1.download_button("📸 SNAPSHOT TOPOLOGY", data=io.BytesIO().getvalue(), file_name="topology.png", use_container_width=True)
     df_out = pd.DataFrame({"r": r.flatten(), "b": b.flatten(), "rho": rho.flatten(), "tau": tau.flatten()})
     c_btn2.download_button("📊 EXPORT TELEMETRY (CSV)", data=df_out.to_csv(index=False).encode('utf-8'), file_name="metric_data.csv", use_container_width=True)
 
 with d_col:
-    tabs = st.tabs(["📊 STRESS-ENERGY", "📈 METRIC TENSOR"])
+    tabs = st.tabs(["📊 STRESS-ENERGY", "📈 METRIC TENSOR", "☄️ PARTICLE DYNAMICS"])
     with tabs[0]:
         st.subheader("Matter Distributions")
         
@@ -148,7 +154,7 @@ with d_col:
         ax.plot(r, tau, color='#00FFF5', linestyle='--', label=r"Radial Tension ($\tau$)")
         ax.legend(); ax.tick_params(colors='white')
         st.pyplot(fig)
-        st.caption("Traversability Condition: Radial Tension must exceed Energy Density at the throat.")
+        st.caption("Condition: Radial Tension must exceed Energy Density at the throat.")
 
     with tabs[1]:
         st.subheader("Geometric Profiles")
@@ -158,6 +164,20 @@ with d_col:
         ax2.set_title(r"Shape Function $b(r)$", color='white')
         ax2.tick_params(colors='white')
         st.pyplot(fig2)
+
+    with tabs[2]:
+        st.subheader("Relativistic Kinetic Shift")
+        fig3, ax3 = plt.subplots(facecolor='black')
+        ax3.set_facecolor('black')
+        # Scaling gain by flux density for visual effect
+        ax3.plot(r, p_gamma * (flux_density / 50), color='#FFD700', lw=2.5)
+        ax3.set_yscale('log')
+        ax3.set_title(r"Kinetic Energy Factor ($\gamma$)", color='white')
+        ax3.set_xlabel("Radius r", color='#888')
+        ax3.tick_params(colors='white')
+        ax3.grid(alpha=0.1)
+        st.pyplot(fig3)
+        st.caption("Exponential energy gain observed as particles approach the minimal surface throat.")
 
 if not pause:
     time.sleep(0.01)
