@@ -8,24 +8,24 @@ import plotly.graph_objects as go
 import io
 import time
 
-# --- 1. UI CONFIGURATION & NUCLEAR STEALTH CSS ---
+# --- 1. UI CONFIGURATION & ABSOLUTE STEALTH CSS ---
 st.set_page_config(
     page_title="Lorentzian Metric Solver", 
     layout="wide", 
-    page_icon="🌌", 
+    page_icon="🌌",
     initial_sidebar_state="expanded"
 )
 
 st.markdown(r"""
 <style>
-    /* Global Background */
+    /* Main Background - True Void */
     .stApp { background-color: #000000 !important; }
     
-    /* Headers & Text - Research Cyan */
+    /* Headers & Text - Research HUD Cyan */
     h1, h2, h3, h4 { color: #00ADB5 !important; font-family: 'Consolas', monospace; }
     p, li, label, .stMarkdown, .stCaption { color: #FFFFFF !important; font-size: 14px; }
     
-    /* TOTAL STEALTH DROPDOWNS & INPUTS */
+    /* NUCLEAR STEALTH OVERRIDE: Dropdowns, Inputs, Popovers */
     div[data-baseweb="select"] > div, div[data-baseweb="input"] > div, input, select, .stSelectbox, .stNumberInput {
         background-color: #161B22 !important; 
         color: #00FFF5 !important; 
@@ -41,28 +41,38 @@ st.markdown(r"""
         color: #00FFF5 !important;
     }
 
-    /* METRICS & SIDEBAR */
+    /* Metrics - Neon Green */
     div[data-testid="stMetricValue"] { color: #00FF41 !important; font-family: 'Consolas', monospace; text-shadow: 0 0 10px rgba(0,255,65,0.4); }
     div[data-testid="stMetricLabel"] { color: #AAAAAA !important; text-transform: uppercase; letter-spacing: 1px; }
+    
+    /* Sidebar */
     section[data-testid="stSidebar"] { background-color: #050505 !important; border-right: 1px solid #222; }
     
-    /* BUTTONS */
+    /* Stealth Buttons */
     div.stButton > button, div.stDownloadButton > button { 
         border: 1px solid #00ADB5 !important; 
         color: #00ADB5 !important; 
         background-color: #161B22 !important; 
-        width: 100%; border-radius: 2px; font-weight: bold; text-transform: uppercase;
+        width: 100%; 
+        border-radius: 2px;
+        font-weight: bold;
+        text-transform: uppercase;
+        transition: all 0.4s ease;
     }
-    div.stButton > button:hover { background-color: #1f242d !important; color: #00FFF5 !important; box-shadow: 0 0 15px rgba(0, 173, 181, 0.4); }
+    div.stButton > button:hover { 
+        background-color: #1f242d !important; 
+        color: #00FFF5 !important; 
+        box-shadow: 0 0 15px rgba(0, 173, 181, 0.4);
+    }
 
-    /* TAB STYLING */
+    /* Tab Styling */
     .stTabs [data-baseweb="tab-list"] { background-color: #000000 !important; }
     .stTabs [data-baseweb="tab"] { color: #888888 !important; }
     .stTabs [data-baseweb="tab"][aria-selected="true"] { color: #00ADB5 !important; border-bottom-color: #00ADB5 !important; }
 </style>
 """, unsafe_allow_html=True)
 
-# --- 2. THE PHYSICS KERNEL ---
+# --- 2. PHYSICS CORE: 14-METRIC UNIVERSAL KERNEL ---
 class SpacetimeSolver:
     @staticmethod
     @st.cache_resource(show_spinner=False)
@@ -104,18 +114,25 @@ class SpacetimeSolver:
         return model, loss
 
     @staticmethod
-    def extract_telemetry(model, metric_type, r0, r_max):
+    def extract_telemetry(model, metric_type, r0, r_max, p_energy):
         r_v = np.linspace(r0, r_max, 800).reshape(-1, 1)
         b = model.net(torch.tensor(r_v, dtype=torch.float32)).detach().numpy()
         rho = np.gradient(b.flatten(), r_v.flatten()) / (8 * np.pi * r_v.flatten()**2 + 1e-12)
+        
+        # Redshift for Wormhole contexts
+        tau = (b.flatten() / (8 * np.pi * r_v.flatten()**3))
+        
+        # Particle Dynamics
+        p_gamma = p_energy / (np.sqrt(np.abs(1 - b.flatten()/r_v.flatten())) + 1e-6)
+        
         z = np.zeros_like(r_v)
         dr = r_v[1] - r_v[0]
         for i in range(1, len(r_v)):
             val = (r_v[i] / (b[i] + 1e-9)) - 1 if "Warp" not in metric_type else 0.1
             z[i] = z[i-1] + (1.0 / np.sqrt(np.abs(val)) if np.abs(val) > 1e-9 else 10.0) * dr
-        return r_v, b, rho, z
+        return r_v, b, rho, tau, z, p_gamma
 
-# --- 3. DASHBOARD HUD ---
+# --- 3. DASHBOARD INTERFACE ---
 st.title("LORENTZIAN METRIC SOLVER")
 
 st.sidebar.markdown(r"### 🛠️ MANIFOLD SELECTOR")
@@ -129,33 +146,25 @@ metric_list = [
 metric_type = st.sidebar.selectbox("Spacetime Metric", metric_list)
 
 st.sidebar.markdown(r"### 🧬 TOPOLOGY CONFIG")
-r0 = st.sidebar.number_input(r"Horizon/Throat ($r_0$)", 0.0001, 100.0, 5.0, format="%.4f")
+r0 = st.sidebar.number_input(r"Horizon/Throat ($r_0$)", 0.0001, 1000.0, 5.0, format="%.4f")
 
-# AUDITED PARAMETER LOGIC FOR EACH DROP DOWN
+# Dynamic Parameter Logic based on Selection
 if metric_type == "Kerr-Newman (Charge + Rotation)":
-    q = st.sidebar.slider(r"Charge ($Q$)", 0.0, 5.0, 1.0)
-    a = st.sidebar.slider(r"Rotation ($a$)", 0.0, 5.0, 1.0)
+    q = st.sidebar.slider(r"Charge ($Q$)", 0.0, 5.0, 1.0); a = st.sidebar.slider(r"Rotation ($a$)", 0.0, 5.0, 1.0)
     param = [q, a]
-elif metric_type == "Morris-Thorne Wormhole":
-    param = st.sidebar.slider(r"Curvature ($\kappa$)", 0.1, 0.9, 0.5)
-elif metric_type == "Kerr Black Hole":
-    param = st.sidebar.slider(r"Angular Momentum ($a$)", 0.0, 5.0, 1.0)
-elif metric_type == "Alcubierre Warp Drive":
-    param = st.sidebar.slider(r"Velocity ($v/c$)", 0.1, 5.0, 1.0)
-elif metric_type == "Reissner-Nordström (Charged)":
-    param = st.sidebar.slider(r"Electric Charge ($Q$)", 0.0, float(r0), 1.0)
-elif "Sitter" in metric_type or "AdS" in metric_type:
-    param = st.sidebar.number_input(r"Lambda ($\Lambda$)", 0.0, 0.01, 0.0001, format="%.6f")
-elif "Stringy" in metric_type:
-    param = st.sidebar.slider(r"Coupling ($\phi$)", 0.0, 4.0, 0.5)
-elif "Naked" in metric_type:
-    param = st.sidebar.slider(r"Scalar Strength ($s$)", 0.1, 2.0, 1.0)
-elif "Drainhole" in metric_type:
-    param = st.sidebar.slider(r"Flow Rate ($n$)", 1.0, 10.0, 2.0)
-elif "Vaidya" in metric_type:
-    param = st.sidebar.slider(r"Mass Loss ($\dot{M}$)", 0.0, 1.0, 0.1)
-else:
-    param = 1.0
+elif metric_type == "Morris-Thorne Wormhole": param = st.sidebar.slider(r"Curvature ($\kappa$)", 0.1, 0.9, 0.5)
+elif metric_type == "Kerr Black Hole": param = st.sidebar.slider(r"Angular Momentum ($a$)", 0.0, 5.0, 1.0)
+elif metric_type == "Alcubierre Warp Drive": param = st.sidebar.slider(r"Velocity ($v/c$)", 0.1, 5.0, 1.0)
+elif metric_type == "Reissner-Nordström (Charged)": param = st.sidebar.slider(r"Electric Charge ($Q$)", 0.0, float(r0), 1.0)
+elif "Expansion" in metric_type or "Contraction" in metric_type: param = st.sidebar.number_input(r"Lambda ($\Lambda$)", 0.0, 0.01, 0.0001, format="%.6f")
+elif "Stringy" in metric_type: param = st.sidebar.slider(r"Coupling ($\phi$)", 0.0, 4.0, 0.5)
+elif "Naked" in metric_type: param = st.sidebar.slider(r"Scalar Strength ($s$)", 0.1, 2.0, 1.0)
+elif "Drainhole" in metric_type: param = st.sidebar.slider(r"Flow Rate ($n$)", 1.0, 10.0, 2.0)
+elif "Vaidya" in metric_type: param = st.sidebar.slider(r"Mass Loss ($\dot{M}$)", 0.0, 1.0, 0.1)
+else: param = 1.0
+
+st.sidebar.markdown(r"### ☄️ PARTICLE KINEMATICS")
+p_energy = st.sidebar.number_input(r"Infall Energy ($\epsilon$)", 0.0001, 100.0, 1.0, format="%.4f")
 
 st.sidebar.markdown(r"### ⚙️ NUMERICAL KERNEL")
 lr_val = st.sidebar.number_input(r"Learning Rate ($\eta$)", 0.0001, 0.01, 0.001, format="%.4f")
@@ -164,21 +173,21 @@ pause = st.sidebar.toggle("HALT SIMULATION", value=False)
 
 # Solver Execution
 model, hist = SpacetimeSolver.solve_manifold(metric_type, r0, r0 * 10, param, epochs, lr_val)
-r, b, rho, z = SpacetimeSolver.extract_telemetry(model, metric_type, r0, r0 * 10)
+r, b, rho, tau, z, p_gamma = SpacetimeSolver.extract_telemetry(model, metric_type, r0, r0 * 10, p_energy)
 
 # Metrics Strip
-m1, m2, m3, m4 = st.columns(4)
+m1, m2, m3 = st.columns(3)
 m1.metric("CONVERGENCE", f"{hist.loss_train[-1][0]:.2e}")
 m2.metric("CLASS", metric_type.split()[0])
-m3.metric("PEAK CURVATURE", f"{np.max(np.abs(rho)):.4f}")
-m4.markdown(f"<div style='text-align:center'><span style='color:#888;font-size:11px'>KERNEL STATE</span><br><span style='color:#00FF41;font-size:18px;font-weight:bold'>NOMINAL</span></div>", unsafe_allow_html=True)
+m3.metric("PEAK DENSITY", f"{np.max(rho):.4f}")
 
 st.markdown("---")
 
+# MAIN HUD LAYOUT: 3D LEFT, 2D STACKED RIGHT
 v_col, d_col = st.columns([2, 1])
 
 with v_col:
-    # 3D DUAL-SURFACE (Mirror Universe)
+    # 3D DUAL-SURFACE (Mirror Universe Connection)
     th = np.linspace(0, 2*np.pi, 60)
     R, T = np.meshgrid(r.flatten(), th)
     Z = np.tile(z.flatten(), (60, 1))
@@ -191,24 +200,25 @@ with v_col:
     fig.update_layout(template="plotly_dark", scene=dict(xaxis_visible=False, yaxis_visible=False, zaxis_visible=False, aspectmode='cube'), paper_bgcolor='black', margin=dict(l=0,r=0,b=0,t=0))
     st.plotly_chart(fig, use_container_width=True)
     
+    # Export Buttons Underneath
     e1, e2 = st.columns(2)
     e1.download_button("📸 SNAPSHOT TOPOLOGY", data=io.BytesIO().getvalue(), file_name="topology.png", use_container_width=True)
-    e2.download_button("📊 EXPORT TELEMETRY", data=pd.DataFrame({"r": r.flatten(), "b": b.flatten()}).to_csv(index=False).encode('utf-8'), file_name="telemetry.csv", use_container_width=True)
+    df_out = pd.DataFrame({"r": r.flatten(), "b": b.flatten(), "rho": rho.flatten()})
+    e2.download_button("📊 EXPORT TELEMETRY (CSV)", data=df_out.to_csv(index=False).encode('utf-8'), file_name="telemetry.csv", use_container_width=True)
 
 with d_col:
-    # STACKED ANALYTICS TABS (Right Side)
-    tabs = st.tabs(["📊 STRESS-ENERGY", "📈 FIELD TENSORS"])
+    # STACKED ANALYTICS TABS
+    tabs = st.tabs(["📊 STRESS-ENERGY", "📈 FIELD TENSORS", "☄️ PARTICLE FLUX"])
     
     with tabs[0]:
-        st.subheader("Matter/Energy Density Profile")
+        st.subheader("Matter Distributions")
         
         fig_r, ax_r = plt.subplots(facecolor='black')
         ax_r.set_facecolor('black')
-        ax_r.plot(r, rho, color='#FF2E63', lw=2)
+        ax_r.plot(r, rho, color='#FF2E63', lw=2, label=r"Density ($\rho$)")
         ax_r.tick_params(colors='white'); ax_r.grid(alpha=0.1)
         st.pyplot(fig_r)
         
-        # FIXED: Logic blocks now contain 'pass' to avoid IndentationError
         if "Wormhole" in metric_type:
             
             pass
@@ -225,14 +235,25 @@ with d_col:
             pass
 
     with tabs[1]:
-        st.subheader("Metric Shape Function b(r)")
+        st.subheader("Shape Function Profile")
         fig_b, ax_b = plt.subplots(facecolor='black')
         ax_b.set_facecolor('black')
         ax_b.plot(r, b, color='#00ADB5', lw=2)
+        ax_b.set_title(r"b(r)", color='white')
         ax_b.tick_params(colors='white'); ax_b.grid(alpha=0.1)
         st.pyplot(fig_b)
 
-# Lifecycle
+    with tabs[2]:
+        st.subheader("High-Energy Infall")
+        fig_p, ax_p = plt.subplots(facecolor='black')
+        ax_p.set_facecolor('black')
+        ax_p.plot(r, p_gamma, color='#FFD700', lw=2)
+        ax_p.set_yscale('log')
+        ax_p.set_title(r"Energy Factor ($\gamma$)", color='white')
+        ax_p.tick_params(colors='white'); ax_p.grid(alpha=0.1)
+        st.pyplot(fig_p)
+
+# Simulation Loop
 if not pause:
     time.sleep(0.01)
     st.rerun()
