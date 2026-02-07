@@ -183,6 +183,7 @@ with v_col:
     R, T = np.meshgrid(r.flatten(), th)
     Z = np.tile(z.flatten(), (60, 1))
     
+    
     fig = go.Figure(data=[
         go.Surface(x=R*np.cos(T), y=R*np.sin(T), z=Z, colorscale='Viridis', showscale=False),
         go.Surface(x=R*np.cos(T), y=R*np.sin(T), z=-Z, colorscale='Viridis', showscale=False)
@@ -207,16 +208,21 @@ with d_col:
         ax_r.tick_params(colors='white'); ax_r.grid(alpha=0.1)
         st.pyplot(fig_r)
         
-        # Physics Visual Cues
+        # FIXED: Logic blocks now contain 'pass' to avoid IndentationError
         if "Wormhole" in metric_type:
             
+            pass
         elif "Kerr" in metric_type:
             
+            pass
         elif "Charged" in metric_type:
             
+            pass
         elif "Vaidya" in metric_type:
             
-        pass
+            pass
+        else:
+            pass
 
     with tabs[1]:
         st.subheader("Metric Shape Function b(r)")
