@@ -10,7 +10,7 @@ import time
 
 # --- 1. UI CONFIGURATION & NUCLEAR STEALTH CSS ---
 st.set_page_config(
-    page_title="The Universal Spacetime Laboratory", 
+    page_title="Lorentzian Metric Solver", 
     layout="wide", 
     page_icon="🌌",
     initial_sidebar_state="expanded"
@@ -318,25 +318,28 @@ with d_col:
     
     with tabs[0]:
         st.subheader("Energy Density Profile ($\rho$)")
-        # Visual Trigger: Stress-Energy Tensor
-        
         fig_r, ax_r = plt.subplots(facecolor='black', figsize=(5,4))
         ax_r.set_facecolor('black'); ax_r.plot(r, rho, color='#FF2E63', lw=2)
         ax_r.tick_params(colors='white'); ax_r.grid(alpha=0.1, color='white')
         ax_r.set_xlabel("Radial Distance (r)", color='white')
         st.pyplot(fig_r)
         
-        # Safe Contextual Visuals
+        # FIXED: Visual Context Blocks with 'pass' to prevent IndentationError
         if "Wormhole" in metric_type:
             
+            pass
         elif "Kerr" in metric_type:
             
+            pass
         elif "Charged" in metric_type:
             
+            pass
         elif "Expansion" in metric_type:
             
-        elif "Warp" in metric_type:
-             
+            pass
+        else:
+            
+            pass
 
     with tabs[1]:
         st.subheader("Shape Function $b(r)$")
