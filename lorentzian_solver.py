@@ -44,7 +44,6 @@ class SpacetimeSolver:
         geom = dde.geometry.Interval(r0, r_max)
         def pde(r, b):
             db_dr = dde.grad.jacobian(b, r)
-            # Comprehensive Physics Residuals
             if metric_type == "Morris-Thorne Wormhole":
                 return db_dr - (b / r) * params[0] + (params[1] * (params[2] - b/r))
             elif "Kerr" in metric_type:
@@ -60,7 +59,7 @@ class SpacetimeSolver:
             elif "Stringy" in metric_type:
                 return db_dr - (b / (r - params[0] * params[1] * params[2]))
             elif "Bonnor-Melvin" in metric_type:
-                return db_dr - (params[0]**2 * r) # Magnetic Universe
+                return db_dr - (params[0]**2 * r)
             return db_dr - (b / r)
 
         bc_val = r0 if "Warp" not in metric_type else 1.0
@@ -104,7 +103,7 @@ metric_type = st.sidebar.selectbox("Metric Class", metric_list)
 
 r0 = st.sidebar.number_input(r"Base Scale ($r_0$ / $M$)", 0.1, 1000.0, 5.0, format="%.4f")
 
-# DYNAMIC PHYSICS PARAMETERS
+# --- DYNAMIC PARAMETER CIRCUIT ---
 params = []
 if metric_type == "Morris-Thorne Wormhole":
     params = [st.sidebar.slider("Curvature (κ)", 0.1, 1.0, 0.5), st.sidebar.slider("Redshift (Φ)", 0.0, 1.0, 0.0), st.sidebar.slider("Exoticity (ξ)", 0.0, 2.0, 1.0)]
@@ -129,7 +128,7 @@ pause = st.sidebar.toggle("HALT SIMULATION", value=False)
 model, hist = SpacetimeSolver.solve_manifold(metric_type, r0, r0 * 10, params, epochs, lr_val)
 r, b, rho, z, pot = SpacetimeSolver.extract_telemetry(model, metric_type, r0, r0 * 10)
 
-# DASHBOARD LAYOUT
+# DASHBOARD STRIP
 m1, m2, m3 = st.columns(3)
 m1.metric("CONVERGENCE", f"{hist.loss_train[-1][0]:.2e}")
 m2.metric("CLASS", metric_type.split()[0])
@@ -144,12 +143,12 @@ with v_col:
     Z_geom = np.tile(z.flatten(), (60, 1))
     Z_pot = np.tile(pot.flatten(), (60, 1))
     
-    st.subheader("Manifold A: Lorentzian Embedding (Spatial Curvature)")
+    st.subheader("Manifold Zenith: Lorentzian Embedding (Spatial Curvature)")
     fig1 = go.Figure(data=[go.Surface(x=R*np.cos(T), y=R*np.sin(T), z=Z_geom, colorscale='Viridis', showscale=False)])
     fig1.update_layout(template="plotly_dark", scene=dict(xaxis_visible=False, yaxis_visible=False, zaxis_visible=False), paper_bgcolor='black', margin=dict(l=0,r=0,b=0,t=0), height=400)
     st.plotly_chart(fig1, use_container_width=True)
 
-    st.subheader("Manifold B: Potential Horizon ($g_{tt}$ Field Strength)")
+    st.subheader("Manifold Nadir: Potential Horizon ($g_{tt}$ Field Strength)")
     fig2 = go.Figure(data=[go.Surface(x=R*np.cos(T), y=R*np.sin(T), z=Z_pot, colorscale='Magma', showscale=False)])
     fig2.update_layout(template="plotly_dark", scene=dict(xaxis_visible=False, yaxis_visible=False, zaxis_visible=False), paper_bgcolor='black', margin=dict(l=0,r=0,b=0,t=0), height=400)
     st.plotly_chart(fig2, use_container_width=True)
@@ -157,7 +156,7 @@ with v_col:
 with d_col:
     fig_stack, (ax1, ax2) = plt.subplots(2, 1, facecolor='black', figsize=(6, 9))
     ax1.set_facecolor('black'); ax1.plot(r, rho, color='#FF2E63', lw=2)
-    ax1.set_title("Energy Density Profile", color='white', fontsize=10)
+    ax1.set_title("Energy Density Distribution", color='white', fontsize=10)
     ax1.tick_params(colors='white', labelsize=8); ax1.grid(alpha=0.1)
     
     ax2.set_facecolor('black'); ax2.plot(r, b, color='#00ADB5', lw=2)
@@ -169,17 +168,22 @@ with d_col:
     
     st.download_button("📥 EXPORT TELEMETRY (CSV)", data=pd.DataFrame({"r":r.flatten(),"b":b.flatten(),"density":rho.flatten()}).to_csv().encode('utf-8'), file_name="telemetry.csv", use_container_width=True)
     
-    # INDENTATION FIX & VISUALS
+    # INDENTATION FIX: Logic blocks now contain 'pass'
     if "Wormhole" in metric_type:
         
+        pass
     elif "Kerr" in metric_type:
         
+        pass
     elif "Charged" in metric_type:
         
+        pass
     elif "Expansion" in metric_type:
         
-    
-    pass
+        pass
+    else:
+        
+        pass
 
 if not pause:
     time.sleep(0.01)
