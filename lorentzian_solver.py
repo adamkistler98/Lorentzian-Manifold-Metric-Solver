@@ -18,45 +18,25 @@ st.set_page_config(
 
 st.markdown(r"""
 <style>
-    /* Main Background - True Void */
     .stApp { background-color: #000000 !important; }
-    
-    /* Headers & Text - Research HUD Cyan */
     h1, h2, h3, h4 { color: #00ADB5 !important; font-family: 'Consolas', monospace; }
     p, li, label, .stMarkdown, .stCaption { color: #FFFFFF !important; font-size: 13px; }
     
-    /* NUCLEAR STEALTH OVERRIDE: Dropdowns, Inputs, Popovers */
     div[data-baseweb="select"] > div, div[data-baseweb="input"] > div, input, select, .stSelectbox, .stNumberInput {
-        background-color: #161B22 !important; 
-        color: #00FFF5 !important; 
-        border: 1px solid #00ADB5 !important;
+        background-color: #161B22 !important; color: #00FFF5 !important; border: 1px solid #00ADB5 !important;
     }
     div[data-baseweb="popover"], ul[role="listbox"], li[role="option"] {
-        background-color: #161B22 !important;
-        color: #00FFF5 !important;
-        border: 1px solid #00ADB5 !important;
+        background-color: #161B22 !important; color: #00FFF5 !important; border: 1px solid #00ADB5 !important;
     }
-    li[role="option"]:hover, li[aria-selected="true"] {
-        background-color: #1f242d !important;
-        color: #00FFF5 !important;
-    }
+    li[role="option"]:hover, li[aria-selected="true"] { background-color: #1f242d !important; color: #00FFF5 !important; }
 
-    /* Metrics - Neon Green */
-    div[data-testid="stMetricValue"] { color: #00FF41 !important; font-family: 'Consolas', monospace; text-shadow: 0 0 10px rgba(0,255,65,0.4); }
-    div[data-testid="stMetricLabel"] { color: #AAAAAA !important; text-transform: uppercase; letter-spacing: 1px; }
-    
-    /* Sidebar */
+    div[data-testid="stMetricValue"] { color: #00FF41 !important; font-family: 'Consolas', monospace; }
     section[data-testid="stSidebar"] { background-color: #050505 !important; border-right: 1px solid #222; }
     
-    /* Stealth Buttons */
     div.stDownloadButton > button { 
-        border: 1px solid #00ADB5 !important; 
-        color: #00ADB5 !important; 
-        background-color: #161B22 !important; 
+        border: 1px solid #00ADB5 !important; color: #00ADB5 !important; background-color: #161B22 !important; 
         width: 100%; border-radius: 2px; font-weight: bold; text-transform: uppercase;
     }
-
-    /* Tab Styling */
     .stTabs [data-baseweb="tab-list"] { background-color: #000000 !important; }
     .stTabs [data-baseweb="tab"] { color: #888888 !important; }
     .stTabs [data-baseweb="tab"][aria-selected="true"] { color: #00ADB5 !important; border-bottom-color: #00ADB5 !important; }
@@ -72,10 +52,8 @@ class SpacetimeSolver:
         def pde(r, b):
             db_dr = dde.grad.jacobian(b, r)
             if metric_type == "Morris-Thorne Wormhole":
-                # params: [kappa, redshift_phi, exoticity_xi]
                 return db_dr - (b / r) * params[0] + (params[1] * (params[2] - b/r))
             elif "Kerr" in metric_type:
-                # params: [M, Q, a, P]
                 eff_q = np.sqrt(params[1]**2 + (params[3]**2 if len(params)>3 else 0))
                 return db_dr - (2 * params[0] * r / (r**2 + params[2]**2)) * b + (eff_q**2 / r**2)
             elif "Warp" in metric_type:
@@ -124,7 +102,6 @@ metric_list = [
 metric_type = st.sidebar.selectbox("Metric Class", metric_list)
 r0 = st.sidebar.number_input(r"Base Scale ($r_0$ / $M$)", 0.1, 1000.0, 5.0, format="%.4f")
 
-# Dynamic Physics Variable Logic
 params = []
 if metric_type == "Morris-Thorne Wormhole":
     params = [st.sidebar.slider("Curvature (κ)", 0.1, 1.0, 0.5), st.sidebar.slider("Redshift (Φ)", 0.0, 1.0, 0.0), st.sidebar.slider("Exoticity (ξ)", 0.0, 2.0, 1.0)]
@@ -143,23 +120,18 @@ lr_val = st.sidebar.number_input("Learning Rate", 0.0001, 0.01, 0.001, format="%
 epochs = st.sidebar.select_slider("Epochs", options=[1000, 2500, 5000], value=2500)
 pause = st.sidebar.toggle("HALT SIMULATION", value=False)
 
-# Solver Execution
 model, hist = SpacetimeSolver.solve_manifold(metric_type, r0, r0 * 10, params, epochs, lr_val)
 r, b, rho, z, pot, p_gamma = SpacetimeSolver.extract_telemetry(model, metric_type, r0, r0 * 10, p_energy)
 
-# Metrics Strip
 m1, m2, m3 = st.columns(3)
 m1.metric("CONVERGENCE", f"{hist.loss_train[-1][0]:.2e}")
 m2.metric("CLASS", metric_type.split()[0])
 m3.metric("PEAK ENERGY", f"{np.max(np.abs(rho)):.4f}")
 
 st.markdown("---")
-
-# QUAD-QUADRANT HUD LAYOUT
 v_col, d_col = st.columns([2, 1])
 
 with v_col:
-    # DUAL FULL-MANIFOLD SYSTEM
     th = np.linspace(0, 2*np.pi, 60)
     R, T = np.meshgrid(r.flatten(), th)
     Z_geom = np.tile(z.flatten(), (60, 1))
@@ -182,7 +154,6 @@ with v_col:
     st.plotly_chart(fig2, use_container_width=True)
 
 with d_col:
-    # ANALYTICAL TABS (RIGHT SIDE)
     tabs = st.tabs(["📊 STRESS-ENERGY", "📈 FIELD TENSORS", "☄️ GEODESICS"])
     
     with tabs[0]:
@@ -195,13 +166,18 @@ with d_col:
         
         if "Wormhole" in metric_type:
             
+            pass
         elif "Kerr" in metric_type:
             
+            pass
         elif "Charged" in metric_type:
             
+            pass
         elif "Expansion" in metric_type:
             
-        pass
+            pass
+        else:
+            pass
 
     with tabs[1]:
         st.subheader("Metric Shape Function b(r)")
@@ -224,7 +200,6 @@ with d_col:
         use_container_width=True
     )
 
-# Lifecycle
 if not pause:
     time.sleep(0.01)
     st.rerun()
