@@ -10,7 +10,7 @@ import time
 
 # --- 1. UI CONFIGURATION & NUCLEAR STEALTH CSS ---
 st.set_page_config(
-    page_title="Lorentzian Metric Solver", 
+    page_title="The Universal Spacetime Laboratory", 
     layout="wide", 
     page_icon="🌌",
     initial_sidebar_state="expanded"
@@ -109,7 +109,10 @@ class SpacetimeSolver:
             elif metric_type == "Kerr-Newman (Charge + Rotation)":
                 eff_q = np.sqrt(params[1]**2 + params[3]**2)
                 return db_dr - (2 * params[0] * r / (r**2 + params[2]**2)) * b + (eff_q**2 / r**2)
-            
+            elif metric_type == "Gott Cosmic String":
+                 # params: [mu]
+                 return db_dr - (params[0] * b)
+
             # 3. Cosmology & Warp
             elif metric_type == "Alcubierre Warp Drive":
                 # params: [v, sigma, thickness, modulation]
@@ -118,9 +121,6 @@ class SpacetimeSolver:
                 # params: [Lambda, k, Omega]
                 sign = -1 if "Expansion" in metric_type else 1
                 return db_dr - (b / r) + (sign * params[0] * r**params[1] * params[2])
-            elif "Gott Cosmic String" in metric_type:
-                 # params: [mu (mass per unit length), deficit_angle]
-                 return db_dr - (params[0] * b) # Simplified Conical Singularity
             
             # 4. Exotic Frontiers
             elif metric_type == "Vaidya (Radiating Star)":
@@ -166,14 +166,13 @@ class SpacetimeSolver:
         pot = -np.log(np.abs(1 - b.flatten()/r_v.flatten()) + 1e-6)
         
         # 4. Particle Geodesics (Lorentz Factor Gamma)
-        # Simulates a test particle falling radially inward
         p_gamma = p_energy / (np.sqrt(np.abs(1 - b.flatten()/r_v.flatten())) + 1e-6)
         
         return r_v, b, rho, z, pot, p_gamma
 
 # --- 3. THE UNIVERSAL CONTROL DECK ---
-st.title("LORENTZIAN MANIFOLD METRIC SOLVER")
-st.markdown("### 🧬 COMPUTATIONAL GENERAL RELATIVITY LAB")
+st.title("THE UNIVERSAL SPACETIME LABORATORY")
+st.markdown("### 🧬 COMPUTATIONAL GENERAL RELATIVITY ENGINE")
 
 st.sidebar.markdown("### 🛠️ SPACETIME CONFIGURATION")
 metric_list = [
@@ -319,11 +318,25 @@ with d_col:
     
     with tabs[0]:
         st.subheader("Energy Density Profile ($\rho$)")
+        # Visual Trigger: Stress-Energy Tensor
+        
         fig_r, ax_r = plt.subplots(facecolor='black', figsize=(5,4))
         ax_r.set_facecolor('black'); ax_r.plot(r, rho, color='#FF2E63', lw=2)
         ax_r.tick_params(colors='white'); ax_r.grid(alpha=0.1, color='white')
         ax_r.set_xlabel("Radial Distance (r)", color='white')
         st.pyplot(fig_r)
+        
+        # Safe Contextual Visuals
+        if "Wormhole" in metric_type:
+            
+        elif "Kerr" in metric_type:
+            
+        elif "Charged" in metric_type:
+            
+        elif "Expansion" in metric_type:
+            
+        elif "Warp" in metric_type:
+             
 
     with tabs[1]:
         st.subheader("Shape Function $b(r)$")
