@@ -14,10 +14,7 @@ st.set_page_config(page_title="Lorentzian Metric Solver", layout="wide", page_ic
 
 st.markdown("""
 <style>
-    /* Global Background */
     .stApp { background-color: #000000; }
-    
-    /* Headers & Text */
     h1, h2, h3, h4 { color: #00ADB5 !important; font-family: 'Consolas', monospace; }
     p, li, label, .stMarkdown, .stCaption { color: #FFFFFF !important; }
     
@@ -47,8 +44,6 @@ class SpacetimeSolver:
         geom = dde.geometry.Interval(r0, r_max)
         def pde(r, b):
             db_dr = dde.grad.jacobian(b, r)
-            # Einstein Field Equation: G_uv = 8pi T_uv
-            # Specifically the (G_tt) component for static spherically symmetric metrics
             return db_dr - (b / r) * curve + (redshift * (1 - b/r))
         
         bc = dde.icbc.DirichletBC(geom, lambda x: r0, lambda x, on: on and np.isclose(x[0], r0))
@@ -67,11 +62,8 @@ class SpacetimeSolver:
         db_dr = torch.autograd.grad(b_t, r_t, grad_outputs=torch.ones_like(b_t))[0].detach().numpy()
         b = b_t.detach().numpy()
         
-        # rho: Energy Density
         rho = db_dr / (8 * np.pi * r_v**2 + 1e-12)
-        # tau: Radial Tension
         tau = (b / (8 * np.pi * r_v**3)) - (2 * redshift_val * (1 - b/r_v) / (8 * np.pi * r_v))
-        # xi: Exoticity Index (Violation of NEC: rho + tau < 0)
         exoticity = rho - tau 
         
         z = np.zeros_like(r_v)
@@ -83,13 +75,13 @@ class SpacetimeSolver:
         return r_v, b, rho, tau, exoticity, z
 
 # --- 3. DASHBOARD ---
-st.sidebar.markdown("### 🧬 $G_{\mu\\nu}$ TOPOLOGY")
-r_throat = st.sidebar.number_input("Throat Radius ($r_0$)", 0.001, 100.0, 2.0, format="%.4f")
-flare = st.sidebar.slider("Curvature Intensity ($\kappa$)", 0.01, 0.99, 0.5)
-redshift = st.sidebar.slider("Redshift Offset ($\Phi$)", 0.0, 1.0, 0.0)
+st.sidebar.markdown(r"### 🧬 $G_{\mu\nu}$ TOPOLOGY")
+r_throat = st.sidebar.number_input(r"Throat Radius ($r_0$)", 0.001, 100.0, 2.0, format="%.4f")
+flare = st.sidebar.slider(r"Curvature Intensity ($\kappa$)", 0.01, 0.99, 0.5)
+redshift = st.sidebar.slider(r"Redshift Offset ($\Phi$)", 0.0, 1.0, 0.0)
 
-st.sidebar.markdown("### ⚙️ NUMERICAL KERNEL")
-lr_val = st.sidebar.number_input("Learning Rate ($\eta$)", 0.000001, 0.1, 0.001, format="%.6f")
+st.sidebar.markdown(r"### ⚙️ NUMERICAL KERNEL")
+lr_val = st.sidebar.number_input(r"Learning Rate ($\eta$)", 0.000001, 0.1, 0.001, format="%.6f")
 epochs = st.sidebar.select_slider("Epochs", options=[1000, 2500, 5000], value=2500)
 
 pause = st.sidebar.toggle("HALT SIMULATION", value=False)
@@ -98,10 +90,10 @@ pause = st.sidebar.toggle("HALT SIMULATION", value=False)
 model, hist = SpacetimeSolver.solve_manifold(r_throat, r_throat * 12, flare, redshift, epochs, lr_val)
 r, b, rho, tau, xi, z = SpacetimeSolver.extract_telemetry(model, r_throat, r_throat * 12, redshift)
 
-# Metrics
+# Metrics (FIXED: Added 'r' for raw strings to avoid SyntaxError)
 m1, m2, m3 = st.columns(3)
 m1.metric("CONVERGENCE", f"{hist.loss_train[-1][0]:.2e}")
-m2.metric("EXOTICITY INDEX ($\xi$)", f"{np.min(xi):.4f}")
+m2.metric(r"EXOTICITY INDEX ($\xi$)", f"{np.min(xi):.4f}")
 m3.metric("NEC VIOLATION", "DETECTED" if np.min(xi) < 0 else "NULL")
 
 st.markdown("---")
@@ -119,35 +111,52 @@ with v_col:
     fig.update_layout(template="plotly_dark", scene=dict(xaxis_visible=False, yaxis_visible=False, zaxis_visible=False, aspectmode='cube'), paper_bgcolor='black', margin=dict(l=0,r=0,b=0,t=0))
     st.plotly_chart(fig, use_container_width=True)
     
-    # Stealth Buttons directly under 3D map
+    # Snapshot / Export
     c_btn1, c_btn2 = st.columns(2)
     c_btn1.download_button("📸 SNAPSHOT TOPOLOGY", data=io.BytesIO().getvalue(), file_name="topology.png")
     c_btn2.download_button("📊 EXPORT TELEMETRY", data=pd.DataFrame({"r": r.flatten(), "b": b.flatten()}).to_csv().encode('utf-8'), file_name="spacetime.csv")
 
 with d_col:
-    tabs = st.tabs(["📉 EXOTIC MATTER", "📈 TENSOR FIELDS"])
+    tabs = st.tabs(["📉 EXOTICITY", "📈 TENSORS", "☄️ PARTICLE FLUX"])
+    
     with tabs[0]:
         st.subheader("Energy Condition Analysis")
         
         fig, ax = plt.subplots(facecolor='black')
         ax.set_facecolor('black')
-        ax.plot(r, xi, color='#FF2E63', label="Exoticity ($\rho - \tau$)")
+        ax.plot(r, xi, color='#FF2E63', label=r"Exoticity ($\rho - \tau$)")
         ax.axhline(0, color='white', linestyle='--', alpha=0.3)
         ax.fill_between(r.flatten(), xi.flatten(), 0, where=(xi.flatten() < 0), color='#FF2E63', alpha=0.2)
         ax.legend(); ax.tick_params(colors='white'); ax.set_xlabel("Radius r")
         st.pyplot(fig)
-        st.caption("Negative values indicate a violation of the Null Energy Condition, essential for throat stability.")
 
     with tabs[1]:
         st.subheader("Manifold Geometry")
         
         fig2, ax2 = plt.subplots(2, 1, facecolor='black', figsize=(6, 8))
-        ax2[0].plot(r, b, color='#00ADB5', label="Shape $b(r)$")
-        ax2[1].plot(r, rho, color='#00FF41', label="Density $\\rho$")
+        ax2[0].plot(r, b, color='#00ADB5', label=r"Shape $b(r)$")
+        ax2[1].plot(r, rho, color='#00FF41', label=r"Density $\rho$")
         for a in ax2: 
             a.set_facecolor('black'); a.tick_params(colors='white'); a.legend()
         plt.tight_layout()
         st.pyplot(fig2)
+
+    with tabs[2]:
+        st.subheader("High-Energy Particle Infall")
+        # Simulating particle blueshift as it approaches r0
+        # E_obs = E_inf / sqrt(1 - b/r)
+        flux_r = r.flatten()
+        energy_gain = 1.0 / (np.sqrt(np.abs(1 - b.flatten()/flux_r)) + 1e-3)
+        
+        fig3, ax3 = plt.subplots(facecolor='black')
+        ax3.set_facecolor('black')
+        ax3.plot(flux_r, energy_gain, color='#FFD700', lw=2)
+        ax3.set_yscale('log')
+        ax3.set_title("Relativistic Energy Shift", color='white')
+        ax3.set_ylabel("Kinetic Factor (log)", color='white')
+        ax3.tick_params(colors='white')
+        st.pyplot(fig3)
+        st.caption("Visualizing the kinetic energy spike of particles as they approach the manifold throat.")
 
 if not pause:
     time.sleep(0.01)
