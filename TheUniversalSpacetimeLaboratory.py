@@ -8,7 +8,7 @@ import plotly.graph_objects as go
 import io
 import time
 
-# --- 1. UI CONFIGURATION & NUCLEAR STEALTH CSS ---
+# --- 1. STEALTH CONFIGURATION ---
 st.set_page_config(
     page_title="Lorentzian Metric Solver", 
     layout="wide", 
@@ -16,74 +16,93 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-st.markdown(r"""
+# --- 2. ADVANCED STEALTH CSS (SecAI-Nexus Standard) ---
+st.markdown("""
 <style>
-    /* 1. Main Background - Deep Void */
-    .stApp { background-color: #000000 !important; }
+    /* GLOBAL DARK THEME */
+    .stApp { background-color: #050505 !important; font-family: 'Courier New', Courier, monospace !important; }
+    h1, h2, h3, h4, h5, h6, p, label, .stMarkdown, .stCaption { color: #00ff41 !important; }
     
-    /* 2. Typography - Research HUD Style */
-    h1, h2, h3, h4 { color: #00ADB5 !important; font-family: 'Consolas', monospace; letter-spacing: 1px; }
-    p, li, label, .stMarkdown, .stCaption { color: #E0E0E0 !important; font-family: 'Roboto Mono', monospace; font-size: 13px; }
+    /* REMOVE WHITE ELEMENTS */
+    header, footer { visibility: hidden; }
+    .stDeployButton { display: none; }
     
-    /* 3. Nuclear Stealth Inputs */
-    div[data-baseweb="select"] > div, div[data-baseweb="input"] > div, input, select, .stSelectbox, .stNumberInput {
-        background-color: #0D1117 !important; 
-        color: #00FFF5 !important; 
-        border: 1px solid #00ADB5 !important;
-        font-family: 'Consolas', monospace;
+    /* SYSTEM HEADER */
+    .clock-header {
+        font-size: 1rem;
+        font-weight: bold;
+        text-align: right;
+        color: #00ff41;
+        margin-bottom: -20px;
+        text-shadow: 0 0 5px #00ff41;
     }
     
-    /* 4. Popovers & Dropdowns */
+    /* INPUTS & SELECTS */
+    div[data-baseweb="select"] > div, div[data-baseweb="input"] > div, input, select, .stSelectbox, .stNumberInput {
+        background-color: #0a0a0a !important; 
+        color: #00ff41 !important; 
+        border: 1px solid #333 !important;
+        font-family: 'Courier New', monospace;
+    }
+    
+    /* DROPDOWN MENUS */
     div[data-baseweb="popover"], ul[role="listbox"], li[role="option"] {
-        background-color: #0D1117 !important;
-        color: #00FFF5 !important;
-        border: 1px solid #30363D !important;
+        background-color: #0a0a0a !important;
+        color: #00ff41 !important;
+        border: 1px solid #333 !important;
     }
     li[role="option"]:hover, li[aria-selected="true"] {
-        background-color: #1F6FEB !important;
-        color: #FFFFFF !important;
+        background-color: #111 !important;
+        color: #fff !important;
+        border-left: 2px solid #00ff41;
     }
 
-    /* 5. Metrics & KPIs */
-    div[data-testid="stMetricValue"] { 
-        color: #00FF41 !important; 
-        font-family: 'Consolas', monospace; 
-        text-shadow: 0 0 10px rgba(0, 255, 65, 0.3);
+    /* METRICS BOXES */
+    div[data-testid="stMetric"] {
+        background-color: #0a0a0a !important;
+        border: 1px solid #333;
+        border-left: 3px solid #00ff41 !important;
+        padding: 5px 10px;
     }
-    div[data-testid="stMetricLabel"] { color: #8B949E !important; }
+    div[data-testid="stMetricValue"] { color: #00ff41 !important; font-family: 'Courier New', monospace !important; text-shadow: 0 0 5px #00ff41; }
+    div[data-testid="stMetricLabel"] { color: #888 !important; }
     
-    /* 6. Sidebar Styling */
-    section[data-testid="stSidebar"] { background-color: #010409 !important; border-right: 1px solid #30363D; }
+    /* SIDEBAR */
+    section[data-testid="stSidebar"] { background-color: #000000 !important; border-right: 1px solid #333; }
     
-    /* 7. Action Buttons */
+    /* BUTTONS */
     div.stDownloadButton > button, div.stButton > button { 
-        border: 1px solid #00ADB5 !important; 
-        color: #00ADB5 !important; 
-        background-color: #0D1117 !important; 
-        width: 100%; 
-        border-radius: 4px; 
-        font-weight: bold; 
-        text-transform: uppercase;
+        background-color: #000000 !important; 
+        color: #00ff41 !important; 
+        border: 1px solid #333 !important;
+        font-family: 'Courier New', monospace !important;
+        text-transform: uppercase; 
+        width: 100%;
         transition: all 0.3s ease;
     }
-    div.stDownloadButton > button:hover { 
-        background-color: #1F6FEB !important; 
-        color: #FFFFFF !important; 
-        box-shadow: 0 0 15px rgba(0, 173, 181, 0.5); 
+    div.stDownloadButton > button:hover, div.stButton > button:hover { 
+        border-color: #00ff41 !important; 
+        box-shadow: 0 0 8px #00ff41 !important;
+        color: #fff !important;
     }
 
-    /* 8. Tab System */
-    .stTabs [data-baseweb="tab-list"] { background-color: #000000 !important; border-bottom: 1px solid #30363D; }
-    .stTabs [data-baseweb="tab"] { color: #8B949E !important; }
-    .stTabs [data-baseweb="tab"][aria-selected="true"] { color: #00ADB5 !important; border-bottom-color: #00ADB5 !important; }
+    /* TABS */
+    .stTabs [data-baseweb="tab-list"] { background-color: #000000 !important; border-bottom: 1px solid #333; }
+    .stTabs [data-baseweb="tab"] { color: #888 !important; font-family: 'Courier New', monospace !important; }
+    .stTabs [data-baseweb="tab"][aria-selected="true"] { color: #00ff41 !important; border-bottom-color: #00ff41 !important; }
+    
+    /* PLOTS */
+    canvas { filter: invert(0); } /* Ensure charts don't get inverted if using dark reader extensions */
 </style>
 """, unsafe_allow_html=True)
 
-# --- 2. THE UNIVERSAL PHYSICS KERNEL ---
+# --- 3. THE UNIVERSAL PHYSICS KERNEL ---
 class SpacetimeSolver:
     @staticmethod
     @st.cache_resource(show_spinner=False)
     def solve_manifold(metric_type, r0, r_max, params, iters, lr):
+        # Prevent singular geometry errors
+        if r0 <= 0: r0 = 0.1
         geom = dde.geometry.Interval(r0, r_max)
         
         # --- THE EINSTEIN FIELD EQUATION RESIDUALS ---
@@ -92,17 +111,14 @@ class SpacetimeSolver:
             
             # 1. Wormholes & Topology
             if metric_type == "Morris-Thorne Wormhole":
-                # params: [kappa (curvature), phi (redshift), xi (exoticity)]
                 return db_dr - (b / r) * params[0] + (params[1] * (params[2] - b/r))
             elif metric_type == "Einstein-Rosen Bridge":
                 return db_dr - (b / r)
             elif metric_type == "Ellis Drainhole":
-                # params: [n (drain rate), vf (ether velocity), p (pressure)]
                 return db_dr - (b / (r**2 + params[0]**2)) * (params[1] * params[2])
 
             # 2. Black Hole Dynamics
             elif metric_type == "Kerr Black Hole":
-                # params: [M, Q, a, P] - Mass, Electric, Spin, Magnetic
                 return db_dr - (2 * params[0] * r / (r**2 + params[2]**2)) * b
             elif metric_type == "Reissner-Nordström (Charged)":
                 return db_dr - (b / r) + (params[1]**2 / r**2)
@@ -110,30 +126,23 @@ class SpacetimeSolver:
                 eff_q = np.sqrt(params[1]**2 + params[3]**2)
                 return db_dr - (2 * params[0] * r / (r**2 + params[2]**2)) * b + (eff_q**2 / r**2)
             elif metric_type == "Gott Cosmic String":
-                 # params: [mu]
                  return db_dr - (params[0] * b)
 
             # 3. Cosmology & Warp
             elif metric_type == "Alcubierre Warp Drive":
-                # params: [v, sigma, thickness, modulation]
                 return db_dr + (params[0] * b * (1-b)**params[2]) / (params[1] * params[3] + 1e-6)
             elif "Expansion" in metric_type or "Contraction" in metric_type:
-                # params: [Lambda, k, Omega]
                 sign = -1 if "Expansion" in metric_type else 1
                 return db_dr - (b / r) + (sign * params[0] * r**params[1] * params[2])
             
             # 4. Exotic Frontiers
             elif metric_type == "Vaidya (Radiating Star)":
-                # params: [M_dot, Luminosity, Flux]
                 return db_dr - (b / r) * (1 - params[0] * params[1] * params[2])
             elif "Stringy" in metric_type:
-                # params: [phi, alpha, T]
                 return db_dr - (b / (r - params[0] * params[1] * params[2]))
             elif "Naked" in metric_type:
-                # params: [s, gamma, strength]
                 return db_dr - (b / (r * params[0]**(params[1]*params[2])))
             elif "Bonnor-Melvin" in metric_type:
-                # params: [B_field]
                 return db_dr - (params[0]**2 * r)
 
             return db_dr - (b / r) # Default Fallback
@@ -170,7 +179,7 @@ class SpacetimeSolver:
         
         return r_v, b, rho, z, pot, p_gamma
 
-# --- 3. THE UNIVERSAL CONTROL DECK ---
+# --- 4. THE UNIVERSAL CONTROL DECK ---
 st.title("THE UNIVERSAL SPACETIME LABORATORY")
 st.markdown("### 🧬 COMPUTATIONAL GENERAL RELATIVITY ENGINE")
 
@@ -271,11 +280,12 @@ p_energy = st.sidebar.number_input("Infall Energy / Rest Mass (ε)", 0.0001, 100
 st.sidebar.markdown("### ⚙️ SOLVER KERNEL")
 lr_val = st.sidebar.number_input("Learning Rate (η)", 0.0001, 0.01, 0.001, format="%.4f")
 epochs = st.sidebar.select_slider("Training Epochs", options=[1000, 2500, 5000], value=2500)
-pause = st.sidebar.toggle("PAUSE SIMULATION", value=False)
 
 # --- EXECUTION PHASE ---
-model, hist = SpacetimeSolver.solve_manifold(metric_type, r0, r0 * 10, params, epochs, lr_val)
-r, b, rho, z, pot, p_gamma = SpacetimeSolver.extract_telemetry(model, metric_type, r0, r0 * 10, p_energy)
+# Removed infinite rerun loop for performance optimization
+with st.spinner("CALCULATING SPACETIME GEOMETRY..."):
+    model, hist = SpacetimeSolver.solve_manifold(metric_type, r0, r0 * 10, params, epochs, lr_val)
+    r, b, rho, z, pot, p_gamma = SpacetimeSolver.extract_telemetry(model, metric_type, r0, r0 * 10, p_energy)
 
 # --- KPI STRIP ---
 m1, m2, m3, m4 = st.columns(4)
@@ -298,16 +308,17 @@ with v_col:
     
     st.subheader("Manifold Zenith: Geometric Embedding ($ds^2$)")
     fig1 = go.Figure(data=[
-        go.Surface(x=R*np.cos(T), y=R*np.sin(T), z=Z_geom, colorscale='Viridis', showscale=False, name='Upper'),
-        go.Surface(x=R*np.cos(T), y=R*np.sin(T), z=-Z_geom, colorscale='Viridis', showscale=False, opacity=0.9, name='Lower')
+        # Changed colorscale to 'Electric' for cyber feel
+        go.Surface(x=R*np.cos(T), y=R*np.sin(T), z=Z_geom, colorscale='Electric', showscale=False, name='Upper'),
+        go.Surface(x=R*np.cos(T), y=R*np.sin(T), z=-Z_geom, colorscale='Electric', showscale=False, opacity=0.9, name='Lower')
     ])
     fig1.update_layout(template="plotly_dark", scene=dict(xaxis_visible=False, yaxis_visible=False, zaxis_visible=False), paper_bgcolor='black', margin=dict(l=0,r=0,b=0,t=0), height=400)
     st.plotly_chart(fig1, use_container_width=True)
 
     st.subheader("Manifold Nadir: Gravitational Potential ($g_{tt}$)")
     fig2 = go.Figure(data=[
-        go.Surface(x=R*np.cos(T), y=R*np.sin(T), z=Z_pot, colorscale='Magma', showscale=False, name='Positive'),
-        go.Surface(x=R*np.cos(T), y=R*np.sin(T), z=-Z_pot, colorscale='Magma', showscale=False, opacity=0.9, name='Negative')
+        go.Surface(x=R*np.cos(T), y=R*np.sin(T), z=Z_pot, colorscale='Electric', showscale=False, name='Positive'),
+        go.Surface(x=R*np.cos(T), y=R*np.sin(T), z=-Z_pot, colorscale='Electric', showscale=False, opacity=0.9, name='Negative')
     ])
     fig2.update_layout(template="plotly_dark", scene=dict(xaxis_visible=False, yaxis_visible=False, zaxis_visible=False), paper_bgcolor='black', margin=dict(l=0,r=0,b=0,t=0), height=400)
     st.plotly_chart(fig2, use_container_width=True)
@@ -316,45 +327,41 @@ with d_col:
     # TRI-TAB ANALYTICAL SUITE
     tabs = st.tabs(["📊 STRESS-ENERGY", "📈 TENSOR FIELD", "☄️ GEODESICS"])
     
+    # Common plotting style helper
+    def style_plot(ax, color='#00ff41'):
+        ax.set_facecolor('black')
+        ax.tick_params(colors='white')
+        ax.grid(alpha=0.1, color='white')
+        ax.spines['bottom'].set_color('#333')
+        ax.spines['top'].set_color('#333') 
+        ax.spines['right'].set_color('#333')
+        ax.spines['left'].set_color('#333')
+        ax.set_xlabel("Radial Distance (r)", color='white')
+        return ax
+
     with tabs[0]:
         st.subheader("Energy Density Profile ($\rho$)")
         fig_r, ax_r = plt.subplots(facecolor='black', figsize=(5,4))
-        ax_r.set_facecolor('black'); ax_r.plot(r, rho, color='#FF2E63', lw=2)
-        ax_r.tick_params(colors='white'); ax_r.grid(alpha=0.1, color='white')
-        ax_r.set_xlabel("Radial Distance (r)", color='white')
+        # Updated to Green
+        ax_r.plot(r, rho, color='#00ff41', lw=2)
+        style_plot(ax_r)
         st.pyplot(fig_r)
         
-        # FIXED: Visual Context Blocks with 'pass' to prevent IndentationError
-        if "Wormhole" in metric_type:
-            
-            pass
-        elif "Kerr" in metric_type:
-            
-            pass
-        elif "Charged" in metric_type:
-            
-            pass
-        elif "Expansion" in metric_type:
-            
-            pass
-        else:
-            
-            pass
-
     with tabs[1]:
         st.subheader("Shape Function $b(r)$")
         fig_b, ax_b = plt.subplots(facecolor='black', figsize=(5,4))
-        ax_b.set_facecolor('black'); ax_b.plot(r, b, color='#00ADB5', lw=2)
-        ax_b.tick_params(colors='white'); ax_b.grid(alpha=0.1, color='white')
-        ax_b.set_xlabel("Radial Distance (r)", color='white')
+        # Updated to Green/White dashed
+        ax_b.plot(r, b, color='#00ff41', lw=2, linestyle='--')
+        style_plot(ax_b)
         st.pyplot(fig_b)
 
     with tabs[2]:
         st.subheader("Lorentz Factor ($\gamma$)")
         fig_p, ax_p = plt.subplots(facecolor='black', figsize=(5,4))
-        ax_p.set_facecolor('black'); ax_p.plot(r, p_gamma, color='#00FF41', lw=2)
-        ax_p.set_yscale('log'); ax_p.tick_params(colors='white'); ax_p.grid(alpha=0.1, color='white')
-        ax_p.set_xlabel("Radial Distance (r)", color='white')
+        # Updated to White for contrast
+        ax_p.plot(r, p_gamma, color='white', lw=1.5)
+        ax_p.set_yscale('log')
+        style_plot(ax_p)
         st.pyplot(fig_p)
         st.caption("Spike indicates event horizon or singularity approach.")
 
@@ -372,8 +379,3 @@ with d_col:
         file_name=f"telemetry_{metric_type.replace(' ','_')}.csv", 
         use_container_width=True
     )
-
-# --- LIFECYCLE MANAGEMENT ---
-if not pause:
-    time.sleep(0.02)
-    st.rerun()
